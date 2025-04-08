@@ -25,6 +25,7 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
 
@@ -740,12 +741,16 @@ public class DictionaryGUI extends JFrame {
         List<String> meanings = Arrays.asList(meaningsText.split("\n"));
         
         client.addWord(word, meanings).thenAccept(response -> {
-            if (response.getStatus().equals(ProtocolConstants.STATUS_SUCCESS)) {
-                appendToResultArea("Successfully added word: " + word);
-            } else if (response.getStatus().equals(ProtocolConstants.STATUS_DUPLICATE)) {
-                appendToResultArea("Word '" + word + "' already exists in the dictionary");
-            } else if (response.getStatus().equals(ProtocolConstants.STATUS_ERROR)) {
-                appendToResultArea("Error: " + response.getErrorMessage());
+            switch (response.getStatus()) {
+                case ProtocolConstants.STATUS_SUCCESS:
+                    appendToResultArea("Successfully added word: " + word);
+                    break;
+                case ProtocolConstants.STATUS_DUPLICATE:
+                    appendToResultArea("Word '" + word + "' already exists in the dictionary");
+                    break;
+                case ProtocolConstants.STATUS_ERROR:
+                    appendToResultArea("Error: " + response.getErrorMessage());
+                    break;
             }
         }).exceptionally(e -> {
             handleError("Error adding word: " + e.getMessage());
@@ -915,7 +920,7 @@ public class DictionaryGUI extends JFrame {
         // Set up the UI look and feel
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (Exception e) {
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
             System.err.println("Error setting look and feel: " + e.getMessage());
         }
         

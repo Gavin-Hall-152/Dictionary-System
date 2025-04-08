@@ -58,8 +58,16 @@ public class ClientHandler implements Runnable {
             
             // Process client requests
             String inputLine;
-            while (running && (inputLine = in.readLine()) != null) {
+            while (running) {
                 try {
+                    inputLine = in.readLine();
+                    if (inputLine == null) {
+                        // Client has closed the connection
+                        System.out.println("Client disconnected normally: " + clientSocket.getInetAddress());
+                        
+                        break;
+                    }
+                    
                     // Parse the client message from JSON
                     Message request = gson.fromJson(inputLine, Message.class);
                     if (request == null) {
@@ -71,6 +79,10 @@ public class ClientHandler implements Runnable {
                     processRequest(request);
                 } catch (JsonSyntaxException e) {
                     sendErrorResponse("Invalid JSON format: " + e.getMessage());
+                } catch (IOException e) {
+                    // Socket was closed or connection was reset
+                    System.out.println("Client disconnected abruptly: " + clientSocket.getInetAddress());
+                    break;
                 } catch (Exception e) {
                     sendErrorResponse("Error processing request: " + e.getMessage());
                 }
@@ -319,11 +331,11 @@ public class ClientHandler implements Runnable {
             if (clientSocket != null && !clientSocket.isClosed()) {
                 clientSocket.close();
                 System.out.println("Client disconnected: " + clientSocket.getInetAddress());
-                
-                // Execute disconnect callback if set
-                if (disconnectCallback != null) {
-                    disconnectCallback.run();
-                }
+            }
+            
+            // Execute disconnect callback if set - always call this regardless of socket state
+            if (disconnectCallback != null) {
+                disconnectCallback.run();
             }
         } catch (IOException e) {
             System.err.println("Error closing client connection: " + e.getMessage());

@@ -3,14 +3,11 @@ package com.gaoyuanh.dictionary.server;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.IntConsumer;
-
-import javax.swing.SwingUtilities;
 
 import com.gaoyuanh.dictionary.dictionary.Dictionary;
 
@@ -22,7 +19,6 @@ public class DictionaryServer {
     private ServerSocket serverSocket;
     private final Dictionary dictionary;
     private ExecutorService threadPool;
-    private List<Thread> clientThreads;
     private boolean running;
     private final int port;
     private final String dictionaryFilePath;
@@ -46,7 +42,6 @@ public class DictionaryServer {
         this.dictionaryFilePath = dictionaryFilePath;
         this.dictionary = new Dictionary();
         this.running = false;
-        this.clientThreads = new ArrayList<>();
     }
     
     /**
@@ -154,9 +149,7 @@ public class DictionaryServer {
             // Notify listener about the new client connection
             notifyClientConnectionChange(1);
         } catch (Exception e) {
-            System.err.println("Error handling client connection: " + e.getMessage());
-            e.printStackTrace();
-        }
+            System.err.println("Error handling client connection: " + e.getMessage());        }
     }
 
     /**
@@ -220,56 +213,6 @@ public class DictionaryServer {
             System.out.println("Server stopped");
         } catch (IOException e) {
             System.err.println("Error closing server socket: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Main method to start the dictionary server
-     * 
-     * @param args Command line arguments: port dictionaryFilePath
-     */
-    public static void main(String[] args) {
-        int port = DEFAULT_PORT;
-        String dictionaryFilePath = null;
-        
-        if (args.length >= 1) {
-            try {
-                port = Integer.parseInt(args[0]);
-            } catch (NumberFormatException e) {
-                System.err.println("Invalid port number: " + args[0] + ", using default port " + DEFAULT_PORT);
-            }
-        } else {
-            System.out.println("No port specified, using default port " + DEFAULT_PORT);
-        }
-        
-        if (args.length >= 2) {
-            dictionaryFilePath = args[1];
-        } else {
-            System.out.println("No dictionary file specified, using default dictionary");
-        }
-        
-        // Check if GUI mode is requested
-        boolean useGUI = false;
-        if (args.length >= 3 && args[2].equalsIgnoreCase("--gui")) {
-            useGUI = true;
-        }
-        
-        if (useGUI) {
-            // Launch the GUI version
-            final int finalPort = port;
-            final String finalPath = dictionaryFilePath;
-            SwingUtilities.invokeLater(() -> {
-                ServerGUI gui = new ServerGUI(finalPort, finalPath);
-                gui.setVisible(true);
-            });
-        } else {
-            // Start in console mode
-            DictionaryServer server = new DictionaryServer(port, dictionaryFilePath);
-            
-            // Add shutdown hook to gracefully stop the server
-            Runtime.getRuntime().addShutdownHook(new Thread(server::stopServer));
-            
-            server.startServer();
         }
     }
 } 

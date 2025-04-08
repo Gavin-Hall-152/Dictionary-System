@@ -54,7 +54,7 @@ public class ServerGUI extends JFrame {
         
         // Set up the window
         setTitle("Dictionary Server");
-        setSize(600, 500);
+        setSize(500, 700);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         
