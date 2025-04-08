@@ -12,3 +12,4 @@ com/gaoyuanh/dictionary/server/DictionaryServer.class
 com/gaoyuanh/App.class
 com/gaoyuanh/dictionary/server/ClientHandler.class
 com/gaoyuanh/dictionary/client/DictionaryGUI.class
+com/gaoyuanh/dictionary/dictionary/Dictionary$1.class

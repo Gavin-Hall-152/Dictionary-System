@@ -26,6 +26,10 @@ public class ClientHandler implements Runnable {
     private BufferedReader in;
     private boolean running;
     private Runnable disconnectCallback;
+    private String dictionaryFilePath; // Path to the dictionary file for saving
+
+    // Lock object for synchronized dictionary saves
+    private static final Object SAVE_LOCK = new Object();
 
     /**
      * Constructor for ClientHandler
@@ -41,12 +45,52 @@ public class ClientHandler implements Runnable {
     }
     
     /**
+     * Constructor for ClientHandler with dictionary file path
+     * 
+     * @param clientSocket The client socket connection
+     * @param dictionary The shared dictionary instance
+     * @param dictionaryFilePath Path to save the dictionary file
+     */
+    public ClientHandler(Socket clientSocket, Dictionary dictionary, String dictionaryFilePath) {
+        this(clientSocket, dictionary);
+        this.dictionaryFilePath = dictionaryFilePath;
+    }
+    
+    /**
      * Sets a callback to be executed when the client disconnects
      * 
      * @param callback The callback to execute on disconnect
      */
     public void setDisconnectCallback(Runnable callback) {
         this.disconnectCallback = callback;
+    }
+    
+    /**
+     * Sets the dictionary file path for saving
+     * 
+     * @param dictionaryFilePath Path to save the dictionary file
+     */
+    public void setDictionaryFilePath(String dictionaryFilePath) {
+        this.dictionaryFilePath = dictionaryFilePath;
+    }
+
+    /**
+     * Saves the dictionary to the specified file path
+     * Uses synchronized block to prevent concurrent writes
+     */
+    private void saveDictionaryToFile() {
+        if (dictionaryFilePath == null || dictionaryFilePath.trim().isEmpty()) {
+            System.out.println("No dictionary file path specified, skipping save");
+            return;
+        }
+        
+        synchronized (SAVE_LOCK) {
+            try {
+                dictionary.saveToFile(dictionaryFilePath);
+            } catch (IOException e) {
+                System.err.println("Error saving dictionary to file: " + e.getMessage());
+            }
+        }
     }
 
     @Override
@@ -174,6 +218,8 @@ public class ClientHandler implements Runnable {
         
         if (success) {
             response.setStatus(ProtocolConstants.STATUS_SUCCESS);
+            // Save dictionary to file after successful add
+            saveDictionaryToFile();
         } else {
             response.setStatus(ProtocolConstants.STATUS_DUPLICATE);
         }
@@ -201,6 +247,8 @@ public class ClientHandler implements Runnable {
         
         if (success) {
             response.setStatus(ProtocolConstants.STATUS_SUCCESS);
+            // Save dictionary to file after successful remove
+            saveDictionaryToFile();
         } else {
             response.setStatus(ProtocolConstants.STATUS_NOT_FOUND);
         }
@@ -235,6 +283,8 @@ public class ClientHandler implements Runnable {
         
         if (success) {
             response.setStatus(ProtocolConstants.STATUS_SUCCESS);
+            // Save dictionary to file after successful add meaning
+            saveDictionaryToFile();
         } else {
             // Could be not found or duplicate, check if word exists
             if (dictionary.search(word) == null) {
@@ -279,6 +329,8 @@ public class ClientHandler implements Runnable {
         
         if (success) {
             response.setStatus(ProtocolConstants.STATUS_SUCCESS);
+            // Save dictionary to file after successful update meaning
+            saveDictionaryToFile();
         } else {
             // Could be word not found or meaning not found
             if (dictionary.search(word) == null) {

@@ -22,7 +22,8 @@ public class DictionaryServer {
     private boolean running;
     private final int port;
     private final String dictionaryFilePath;
-    
+    private final int threadPoolSize;
+
     // Default port if not specified
     public static final int DEFAULT_PORT = 8080;
     
@@ -38,10 +39,22 @@ public class DictionaryServer {
      * @param dictionaryFilePath Path to the dictionary file
      */
     public DictionaryServer(int port, String dictionaryFilePath) {
+        this(port, dictionaryFilePath, 10); // Default thread pool size is 10
+    }
+    
+    /**
+     * Constructor for the DictionaryServer with custom thread pool size
+     * 
+     * @param port The port number to listen on
+     * @param dictionaryFilePath Path to the dictionary file
+     * @param threadPoolSize The size of the thread pool for handling client connections
+     */
+    public DictionaryServer(int port, String dictionaryFilePath, int threadPoolSize) {
         this.port = port;
         this.dictionaryFilePath = dictionaryFilePath;
         this.dictionary = new Dictionary();
         this.running = false;
+        this.threadPoolSize = threadPoolSize;
     }
     
     /**
@@ -58,7 +71,7 @@ public class DictionaryServer {
      * 
      * @param delta +1 for client connection, -1 for disconnection
      */
-    void notifyClientConnectionChange(int delta) {
+    private void notifyClientConnectionChange(int delta) {
         if (clientConnectionListener != null) {
             clientConnectionListener.accept(delta);
         }
@@ -94,7 +107,7 @@ public class DictionaryServer {
             
             // Create server socket
             serverSocket = new ServerSocket(port);
-            threadPool = Executors.newCachedThreadPool();
+            threadPool = Executors.newFixedThreadPool(threadPoolSize);
             running = true;
             
             System.out.println("Dictionary Server started on port " + port);
@@ -136,7 +149,7 @@ public class DictionaryServer {
             System.out.println("New client connected: " + clientSocket.getInetAddress());
             
             // Create a new client handler to process the client's requests
-            ClientHandler clientHandler = new ClientHandler(clientSocket, dictionary);
+            ClientHandler clientHandler = new ClientHandler(clientSocket, dictionary, dictionaryFilePath);
             
             // Set the disconnect callback to notify when client disconnects
             clientHandler.setDisconnectCallback(() -> {
@@ -179,6 +192,15 @@ public class DictionaryServer {
         dictionary.add(word, meanings);
     }
 
+    /**
+     * Gets the thread pool size used by this server
+     * 
+     * @return The thread pool size
+     */
+    public int getThreadPoolSize() {
+        return threadPoolSize;
+    }
+    
     /**
      * Stops the server and releases resources
      */

@@ -1,10 +1,11 @@
 package com.gaoyuanh.dictionary.dictionary;
 
-import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.Reader;
+import java.io.Writer;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -12,15 +13,22 @@ import java.util.Map;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+
 /**
  * Dictionary class that provides methods to query, add, remove, and update words.
  * Implements thread-safe operations using read-write locks.
+ * Uses JSON format for file operations.
  */
 public class Dictionary {
     // Map word to its meanings
     private final Map<String, WordEntry> dictionary;
     // Read-write lock for thread safety
     private final ReadWriteLock lock;
+    // Gson instance for JSON serialization/deserialization
+    private final Gson gson;
 
     /**
      * Constructor initializes an empty dictionary with thread-safe access
@@ -28,54 +36,28 @@ public class Dictionary {
     public Dictionary() {
         this.dictionary = new HashMap<>();
         this.lock = new ReentrantReadWriteLock();
+        this.gson = new GsonBuilder().setPrettyPrinting().create();
     }
 
     /**
-     * Loads dictionary data from a file
+     * Loads dictionary data from a JSON file
      * 
-     * @param filePath Path to the dictionary file
+     * @param filePath Path to the JSON dictionary file
      * @throws IOException If an error occurs while reading the file
      */
     public void loadFromFile(String filePath) throws IOException {
         lock.writeLock().lock();
-        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
-            String line;
-            String currentWord = null;
-            List<String> meanings = new ArrayList<>();
-
-            while ((line = reader.readLine()) != null) {
-                line = line.trim();
-                // Skip empty lines
-                if (line.isEmpty()) {
-                    continue;
-                }
-
-                // Lines starting with # are comments
-                if (line.startsWith("#")) {
-                    continue;
-                }
-
-                // Word lines start with "word:"
-                if (line.contains(":") && !line.startsWith(" ")) {
-                    // Save previous word if it exists
-                    if (currentWord != null && !meanings.isEmpty()) {
-                        dictionary.put(currentWord, new WordEntry(currentWord, meanings));
-                        meanings = new ArrayList<>();
-                    }
-                    
-                    // Extract new word
-                    currentWord = line.substring(0, line.indexOf(":")).trim().toLowerCase();
-                } else if (line.startsWith(" ") || line.startsWith("\t")) {
-                    // Meaning lines are indented
-                    if (currentWord != null) {
-                        meanings.add(line.trim());
-                    }
-                }
-            }
-
-            // Add the last word if it exists
-            if (currentWord != null && !meanings.isEmpty()) {
-                dictionary.put(currentWord, new WordEntry(currentWord, meanings));
+        try (Reader reader = new FileReader(filePath)) {
+            // Define the type for deserializing a Map<String, WordEntry>
+            Type dictionaryType = new TypeToken<Map<String, WordEntry>>(){}.getType();
+            Map<String, WordEntry> loadedDictionary = gson.fromJson(reader, dictionaryType);
+            
+            if (loadedDictionary != null) {
+                dictionary.clear();
+                dictionary.putAll(loadedDictionary);
+                System.out.println("Loaded " + dictionary.size() + " entries from JSON file: " + filePath);
+            } else {
+                System.out.println("No entries found in JSON file or invalid format: " + filePath);
             }
         } finally {
             lock.writeLock().unlock();
@@ -83,21 +65,16 @@ public class Dictionary {
     }
 
     /**
-     * Saves the dictionary to a file
+     * Saves the dictionary to a JSON file
      * 
-     * @param filePath Path to save the dictionary file
+     * @param filePath Path to save the JSON dictionary file
      * @throws IOException If an error occurs while writing to the file
      */
     public void saveToFile(String filePath) throws IOException {
         lock.readLock().lock();
-        try (PrintWriter writer = new PrintWriter(new FileWriter(filePath))) {
-            for (WordEntry entry : dictionary.values()) {
-                writer.println(entry.getWord() + ":");
-                for (String meaning : entry.getMeanings()) {
-                    writer.println("    " + meaning);
-                }
-                writer.println();
-            }
+        try (Writer writer = new FileWriter(filePath)) {
+            gson.toJson(dictionary, writer);
+            System.out.println("Saved " + dictionary.size() + " entries to JSON file: " + filePath);
         } finally {
             lock.readLock().unlock();
         }

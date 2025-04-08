@@ -1,0 +1,52 @@
+{
+  "computer": {
+    "word": "computer",
+    "meanings": [
+      "an electronic device for storing and processing data",
+      "a person who performs calculations"
+    ]
+  },
+  "dictionary": {
+    "word": "dictionary",
+    "meanings": [
+      "a book or electronic resource that lists words and their meanings",
+      "a reference source containing words usually alphabetically arranged with information about their pronunciations, etymologies, and definitions"
+    ]
+  },
+  "java": {
+    "word": "java",
+    "meanings": [
+      "an object-oriented programming language",
+      "a type of coffee",
+      "an island of Indonesia"
+    ]
+  },
+  "gaoyuanh": {
+    "word": "gaoyuanh",
+    "meanings": [
+      "superman"
+    ]
+  },
+  "json": {
+    "word": "json",
+    "meanings": [
+      "a lightweight data-interchange format",
+      "JavaScript Object Notation"
+    ]
+  },
+  "hello": {
+    "word": "hello",
+    "meanings": [
+      "an expression of greeting",
+      "used to answer the telephone",
+      "an exclamation of surprise"
+    ]
+  },
+  "programming": {
+    "word": "programming",
+    "meanings": [
+      "the process of writing computer programs",
+      "the action or process of scheduling something"
+    ]
+  }
+}

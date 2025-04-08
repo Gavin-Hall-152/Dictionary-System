@@ -40,6 +40,7 @@ public class ServerGUI extends JFrame {
     private DictionaryServer server;
     private int port;
     private String dictionaryFilePath;
+    private int threadPoolSize = 10; // Default thread pool size
     private boolean isRunning = false;
 
     /**
@@ -54,7 +55,7 @@ public class ServerGUI extends JFrame {
         
         // Set up the window
         setTitle("Dictionary Server");
-        setSize(500, 700);
+        setSize(500, 750);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         
@@ -172,6 +173,15 @@ public class ServerGUI extends JFrame {
         filePanel.add(fileField);
         filePanel.setAlignmentX(Component.LEFT_ALIGNMENT);
         
+        // Add thread pool size configuration
+        JPanel threadPoolPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        threadPoolPanel.setBackground(Color.WHITE);
+        JLabel threadPoolLabel = new JLabel("Thread Pool Size:");
+        JTextField threadPoolField = new JTextField(String.valueOf(threadPoolSize), 5);
+        threadPoolPanel.add(threadPoolLabel);
+        threadPoolPanel.add(threadPoolField);
+        threadPoolPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
         JButton applyButton = new JButton("Apply Settings");
         applyButton.setAlignmentX(Component.LEFT_ALIGNMENT);
         applyButton.addActionListener(e -> {
@@ -179,11 +189,24 @@ public class ServerGUI extends JFrame {
             if (!isRunning) {
                 try {
                     int newPort = Integer.parseInt(portField.getText().trim());
+                    int newThreadPoolSize = Integer.parseInt(threadPoolField.getText().trim());
+                    
                     if (newPort >= 1 && newPort <= 65535) {
                         port = newPort;
                         portLabel.setText("Port: " + port);
                         dictionaryFilePath = fileField.getText().trim();
-                        logMessage("Settings updated: Port=" + port + ", File=" + dictionaryFilePath);
+                        
+                        // Validate and set thread pool size
+                        if (newThreadPoolSize >= 1) {
+                            threadPoolSize = newThreadPoolSize;
+                            logMessage("Settings updated: Port=" + port + ", File=" + dictionaryFilePath + 
+                                       ", Thread Pool Size=" + threadPoolSize);
+                        } else {
+                            JOptionPane.showMessageDialog(this,
+                                "Thread pool size must be at least 1",
+                                "Invalid Thread Pool Size",
+                                JOptionPane.ERROR_MESSAGE);
+                        }
                     } else {
                         JOptionPane.showMessageDialog(this,
                             "Port must be between 1 and 65535",
@@ -192,7 +215,7 @@ public class ServerGUI extends JFrame {
                     }
                 } catch (NumberFormatException ex) {
                     JOptionPane.showMessageDialog(this,
-                        "Invalid port number",
+                        "Invalid numeric input. Please check port and thread pool size values.",
                         "Error",
                         JOptionPane.ERROR_MESSAGE);
                 }
@@ -209,6 +232,8 @@ public class ServerGUI extends JFrame {
         panel.add(portPanel);
         panel.add(Box.createRigidArea(new Dimension(0, 10)));
         panel.add(filePanel);
+        panel.add(Box.createRigidArea(new Dimension(0, 10)));
+        panel.add(threadPoolPanel); // Add the thread pool configuration panel
         panel.add(Box.createRigidArea(new Dimension(0, 20)));
         panel.add(applyButton);
         panel.add(Box.createVerticalGlue());
@@ -258,7 +283,7 @@ public class ServerGUI extends JFrame {
             // Start the server on a separate thread to keep GUI responsive
             new Thread(() -> {
                 try {
-                    server = new DictionaryServer(port, dictionaryFilePath);
+                    server = new DictionaryServer(port, dictionaryFilePath, threadPoolSize);
                     server.setClientConnectionListener(this::updateClientCount);
                     boolean started = server.startServer();
                     
@@ -284,7 +309,7 @@ public class ServerGUI extends JFrame {
             }).start();
             
             updateServerStatus(true);
-            logMessage("Server starting on port " + port + "...");
+            logMessage("Server starting on port " + port + " with thread pool size " + threadPoolSize + "...");
             
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this,
@@ -403,7 +428,7 @@ public class ServerGUI extends JFrame {
         SwingUtilities.invokeLater(() -> {
             // Default values
             int port = 8080;
-            String dictionaryFilePath = "dictionary.json";
+            String dictionaryFilePath = "src/main/resources/dictionary.json";
             
             // Parse command line arguments if provided
             if (args.length >= 1) {
